@@ -32,8 +32,12 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 ```
 
-### `Procfile` (no extension)
+### Create the Procfile
 ```
+echo 'web: gunicorn app:app' > Procfile
+```
+
+``` Procfile` (no extension)
 web: gunicorn app:app
 ```
 
