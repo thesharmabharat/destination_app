@@ -6,7 +6,8 @@ app = Flask(__name__)
 # Define a home route
 @app.route('/')
 def home():
-    return jsonify({"output:":"Welcome to your first Flask API"})
+    return jsonify({"output": "Welcome to your first Flask API"})
+    # return jsonify({"output:":"Welcome to your first Flask API"})
 
 # Define an example API route
 @app.route('/api/example/',methods = ['GET'])
