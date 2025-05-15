@@ -16,4 +16,6 @@ def example_api():
 
 # Run the app
 if __name__ == "__main__":
-    first_app.run(debug=True)
+    # first_app.run(debug=True)
+    import os
+    first_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
