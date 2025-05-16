@@ -15,9 +15,14 @@ destination_app/
 
 ### `app.py`
 ```python
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, redirect
 
 app = Flask(__name__)
+
+@app.before_request
+def redirect_to_https():
+    if not request.is_secure and request.headers.get("X-Forwarded-Proto") != "https":
+        return redirect(request.url.replace("http://", "https://"), code=301)
 
 @app.route('/')
 def home():
@@ -32,13 +37,9 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 ```
 
-### Create the Procfile
-```
+### Create the `Procfile`
+```bash
 echo 'web: gunicorn app:app' > Procfile
-```
-
-``` Procfile` (no extension)
-web: gunicorn app:app
 ```
 
 ### `requirements.txt`
@@ -112,7 +113,7 @@ heroku domains:wait www.nineextralives.com
 heroku certs:auto:enable
 ```
 
-Test:
+Wait a few minutes, then test:
 ```
 https://www.nineextralives.com
 ```
@@ -135,3 +136,4 @@ Your Flask API is now:
 - ✅ Deployed to Heroku
 - ✅ Accessible via your GoDaddy domain
 - ✅ Secured with HTTPS
+- ✅ Redirecting HTTP → HTTPS
