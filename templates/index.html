@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Friendly Destination Bookmark App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+    <div class="container">
+        <h1>Your Friendly Destination Bookmark App</h1>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search for a place in India...">
+            <button onclick="searchPlace()">Search</button>
+        </div>
+        <div id="map"></div>
+        <div class="lists-container">
+            <div class="list">
+                <h2>To Visit</h2>
+                <ul id="to-visit-list"></ul>
+            </div>
+            <div class="list">
+                <h2>Visited</h2>
+                <ul id="visited-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html> 
