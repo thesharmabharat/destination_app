@@ -113,6 +113,23 @@ def save_place():
     db.session.commit()
     return jsonify({'message': 'Place saved/updated successfully'})
 
+@app.route('/api/places', methods=['DELETE'])
+@login_required
+def delete_place():
+    data = request.get_json()
+    place = Place.query.filter_by(
+        name=data['name'],
+        lat=data['lat'],
+        lon=data['lon'],
+        user_id=current_user.id
+    ).first()
+    if place:
+        db.session.delete(place)
+        db.session.commit()
+        return jsonify({'message': 'Place deleted'}), 200
+    return jsonify({'error': 'Place not found'}), 404
+
+
 if __name__ == '__main__':
     # with app.app_context():
     #     db.create_all()
