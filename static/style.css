@@ -212,3 +212,61 @@ li button {
         padding: 10px;
     }
 }
+
+/* Ensure the map always fills its container on mobile */
+#map {
+    width: 100% !important;
+    height: 300px;
+  }
+  
+  /* Leaflet popup responsiveness */
+  .leaflet-popup-content-wrapper {
+    max-width: 90vw;       /* never wider than viewport */
+  }
+  .leaflet-popup-content {
+    white-space: normal;    /* allow wrapping */
+    overflow-wrap: break-word;
+  }
+  
+  /* Slightly smaller popups on small screens */
+  @media (max-width: 768px) {
+    .leaflet-popup-content-wrapper {
+      max-width: 85vw;
+    }
+    #map {
+      height: 250px;
+    }
+  
+    /* Stack header on mobile */
+    .header-bar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    /* Search bar full width */
+    .search-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #search-input, .search-container button {
+      width: 100%;
+    }
+  
+    /* Lists full width & smaller text */
+    .lists-container {
+      flex-direction: column;
+    }
+    .list {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    li {
+      font-size: 14px;
+    }
+    li button {
+      padding: 6px 10px;
+      font-size: 14px;
+    }
+  }
+  
