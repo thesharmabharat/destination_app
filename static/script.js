@@ -1,185 +1,186 @@
-let map;
-let markers = [];
-let toVisitList = [];
-let visitedList = [];
+// static/script.js
 
+let map,
+    markers = [],
+    toVisitList = [],
+    visitedList = [];
+
+// Marker icons (FontAwesome)
 const toVisitIcon = L.divIcon({
-  html: '<i class="fa fa-map-marker-alt" style="color: yellow; font-size: 32px;"></i>',
-  iconSize: [32, 32],
+  html: '<i class="fa fa-map-marker-alt" style="color:yellow;font-size:32px;"></i>',
+  iconSize: [32,32],
   className: 'leaflet-marker-icon'
 });
-
 const visitedIcon = L.divIcon({
-  html: '<i class="fa fa-map-marker-alt" style="color: green; font-size: 32px;"></i>',
-  iconSize: [32, 32],
+  html: '<i class="fa fa-map-marker-alt" style="color:green;font-size:32px;"></i>',
+  iconSize: [32,32],
   className: 'leaflet-marker-icon'
 });
 
+// INITIALIZE
 function initMap() {
-  map = L.map('map').setView([19.1230, 72.8277], 15); // Mumbai
+  map = L.map('map').setView([19.0760, 72.8777], 12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
   loadPlaces();
+  // fix leaflet inside flex
+  setTimeout(() => map.invalidateSize(), 300);
 
-  // Fix map display inside flex containers
-  setTimeout(() => map.invalidateSize(), 500);
+  // DELEGATED LISTENER for all future .bookmark-btn clicks
+  document.body.addEventListener('click', e => {
+    const btn = e.target.closest('.bookmark-btn');
+    if (!btn) return;
+    const name = btn.dataset.name;
+    const lat  = parseFloat(btn.dataset.lat);
+    const lon  = parseFloat(btn.dataset.lon);
+    addToVisit({ name, lat, lon, status: 'to_visit' });
+    map.closePopup();
+  });
 }
 
+// LOAD & RENDER
 function loadPlaces() {
   fetch('/api/places')
-    .then(res => res.json())
+    .then(r => r.json())
     .then(data => {
-      // reset everything
-      removeAllMarkers();
-      toVisitList = [];
-      visitedList = [];
+      // clear markers & data
+      markers.forEach(m => map.removeLayer(m.marker));
+      markers = []; toVisitList = []; visitedList = [];
 
       data.forEach(p => {
-        // sort into lists
         if (p.status === 'visited') visitedList.push(p);
         else toVisitList.push(p);
-
-        // add marker
-        const icon = (p.status === 'visited') ? visitedIcon : toVisitIcon;
-        addMarkerToMap(p.name, p.lat, p.lon, icon, p.status === 'to_visit');
+        addMarkerToMap(p, p.status === 'to_visit');
       });
 
       updateLists();
     });
 }
 
+// SEARCH
 function searchPlace() {
-  const query = document.getElementById('search-input').value;
-  if (!query) return;
-
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=IN`)
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=IN`)
     .then(r => r.json())
-    .then(data => {
-      if (!data.length) return;
-      const r = data[0];
-      const lat = parseFloat(r.lat), lon = parseFloat(r.lon);
-      map.setView([lat, lon], 13);
-      addMarkerToMap(r.display_name, lat, lon, toVisitIcon, true);
+    .then(results => {
+      if (!results.length) return alert('No results found');
+      const { display_name:name, lat, lon } = results[0];
+      const la = parseFloat(lat), lo = parseFloat(lon);
+      map.setView([la,lo], 13);
+      // temporary marker with bookmark allowed
+      addMarkerToMap({ name, lat:la, lon:lo }, true);
     });
 }
 
-function addToVisit(name, lat, lon) {
-  // prevent dupes
-  if (toVisitList.some(p=>p.name===name && p.lat===lat && p.lon===lon)) return;
-  if (visitedList.some(p=>p.name===name && p.lat===lat && p.lon===lon)) return;
-
-  const place = { name, lat, lon, status: 'to_visit' };
+// CRUD helpers
+function addToVisit(place) {
+  place.status = 'to_visit';
   fetch('/api/places', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type':'application/json'},
     body: JSON.stringify(place)
-  })
-  .then(()=>loadPlaces());
+  }).then(loadPlaces);
 }
 
 function markAsVisited(place) {
   place.status = 'visited';
   fetch('/api/places', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type':'application/json'},
     body: JSON.stringify(place)
-  })
-  .then(()=>loadPlaces());
+  }).then(loadPlaces);
 }
 
-function deleteToVisit(place) {
+function deletePlace(place) {
   fetch('/api/places', {
     method: 'DELETE',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type':'application/json'},
     body: JSON.stringify(place)
-  })
-  .then(()=>loadPlaces());
+  }).then(loadPlaces);
 }
 
-function deleteVisited(place) {
-  fetch('/api/places', {
-    method: 'DELETE',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(place)
-  })
-  .then(()=>loadPlaces());
-}
-
+// LIST UI
 function updateLists() {
-  const toEl = document.getElementById('to-visit-list');
-  const vEl = document.getElementById('visited-list');
-
-  // To Visit
+  const toEl = document.getElementById('to-visit-list'),
+        vEl  = document.getElementById('visited-list');
   toEl.innerHTML = '';
-  toVisitList.forEach(place => {
+  vEl .innerHTML = '';
+
+  toVisitList.forEach(p => {
     const li = document.createElement('li');
     li.innerHTML = `
-      ${place.name}
-      <div style="display:flex;gap:6px;">
-        <button class="visit-btn">Visited</button>
-        <button class="delete-btn" style="background-color:#e74c3c">Delete</button>
+      ${p.name}
+      <div class="btn-group">
+        <button class="btn-visit">Visited</button>
+        <button class="btn-delete">Delete</button>
       </div>
     `;
-    li.querySelector('.visit-btn')
-      .addEventListener('click', ()=>markAsVisited(place));
-    li.querySelector('.delete-btn')
-      .addEventListener('click', ()=>deleteToVisit(place));
+    li.querySelector('.btn-visit').onclick  = () => markAsVisited(p);
+    li.querySelector('.btn-delete').onclick = () => deletePlace(p);
     toEl.appendChild(li);
   });
 
-  // Visited
-  vEl.innerHTML = '';
-  visitedList.forEach(place => {
+  visitedList.forEach(p => {
     const li = document.createElement('li');
     li.innerHTML = `
-      ${place.name}
-      <button class="delete-btn" style="background-color:#e74c3c">Delete</button>
+      ${p.name}
+      <div class="btn-group">
+        <button class="btn-delete">Delete</button>
+        <button class="btn-notes">Notes</button>
+      </div>
     `;
-    li.querySelector('.delete-btn')
-      .addEventListener('click', ()=>deleteVisited(place));
+    li.querySelector('.btn-delete').onclick = () => deletePlace(p);
+    li.querySelector('.btn-notes').onclick  = () => openNotesModal(p);
     vEl.appendChild(li);
   });
 }
 
-function removeAllMarkers() {
-  markers.forEach(m => map.removeLayer(m.marker));
-  markers = [];
+// MARKERS
+function addMarkerToMap(place, allowBookmark=false) {
+  const { name, lat, lon, status } = place;
+  const icon = (status==='visited') ? visitedIcon : toVisitIcon;
+  const marker = L.marker([lat, lon], { icon }).addTo(map);
+  markers.push({ name, marker });
+
+  // Fancy popup with data attrs
+  let html = `<b>${name}</b><br>`;
+  if (allowBookmark) {
+    html += `<button class="bookmark-btn"
+                  data-name="${name}"
+                  data-lat="${lat}"
+                  data-lon="${lon}">
+                Bookmark
+             </button>`;
+  } else {
+    html += (status==='visited' ? 'Visited' : 'To Visit');
+  }
+
+  marker.bindPopup(html);
+  if (allowBookmark) marker.openPopup();
 }
 
-function addMarkerToMap(name, lat, lon, icon, allowBookmark = false) {
-const marker = L.marker([lat, lon], { icon }).addTo(map);
-markers.push({ name, marker });
-
-// build the popup HTML
-let html = `<b>${name}</b><br>`;
-if (allowBookmark) {
-    html += `<button id="bookmark-btn">Bookmark</button>`;
-} else {
-    html += (icon === visitedIcon ? 'Visited' : 'To Visit');
+// NOTES modal
+function openNotesModal(p) {
+  const note = prompt('Your notes:', p.note||'');
+  const date = prompt('Visited on (YYYY-MM-DD):', p.visited_on||'');
+  p.note = note; p.visited_on = date;
+  fetch('/api/places',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(p)
+  }).then(loadPlaces);
 }
 
-// bind, attach listener, then open if needed
-marker.bindPopup(html);
-
-marker.on('popupopen', () => {
-    if (allowBookmark) {
-    const btn = document.getElementById('bookmark-btn');
-    if (btn) {
-        btn.addEventListener('click', () => {
-        addToVisit(name, lat, lon);
-        marker.closePopup();
-        });
-    }
-    }
-});
-
-// **this is the missing piece** — open the popup immediately
-if (allowBookmark) {
-    marker.openPopup();
+// GEOLOCATE
+function useMyLocation() {
+  if (!navigator.geolocation) return alert('Geolocation not supported');
+  navigator.geolocation.getCurrentPosition(
+    ({coords}) => map.setView([coords.latitude, coords.longitude],14),
+    () => alert('Permission denied')
+  );
 }
-}
-  
 
 window.onload = initMap;
